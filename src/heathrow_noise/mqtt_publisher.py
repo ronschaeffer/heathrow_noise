@@ -11,7 +11,7 @@ from ha_mqtt_publisher import Device, Entity, MQTTPublisher
 
 from heathrow_noise import __version__
 from heathrow_noise.config import Config
-from heathrow_noise.models import HeathrowState
+from heathrow_noise.models import HeathrowState, OperationsMode
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,8 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             component="sensor",
             unique_id="schedule_json",
             name="Schedule",
-            state_topic=topic("schedule_json"),
+            state_topic=topic("schedule_summary"),
+            json_attributes_topic=topic("schedule_json"),
             icon="mdi:calendar-clock",
         ),
         Entity(
@@ -266,13 +267,17 @@ def publish_state(
         "next_switch": _iso(sched.next_switch),
         "next_quiet": _iso(sched.next_quiet_start),
         "next_high_impact": _iso(sched.next_high_impact_start),
-        "schedule_json": json.dumps(schedule_payload),
+        "schedule_json": json.dumps({"periods": schedule_payload}),
+        "schedule_summary": (
+            f"{len(schedule_payload)} periods, next: "
+            f"{schedule_payload[0]['runway'] if schedule_payload else 'n/a'}"
+        ),
         "deviation_active": "yes" if state.deviations else "no",
         "deviation_text": "; ".join(deviation_texts) if deviation_texts else "none",
         "feed_available": "yes" if state.feed_available else "no",
         "aircraft_seen": str(rwy.aircraft_seen),
         "classifier_confidence": rwy.confidence,
-        "status": "ok" if rwy.mode.value != "unknown" else "classifying",
+        "status": "ok" if rwy.mode != OperationsMode.UNKNOWN else "classifying",
     }
 
     for key, value in payloads.items():

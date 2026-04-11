@@ -8,16 +8,16 @@ from enum import StrEnum
 
 
 class OperationsMode(StrEnum):
-    WESTERLY = "westerly"
-    EASTERLY = "easterly"
-    UNKNOWN = "unknown"
+    WESTERLY = "Westerly"
+    EASTERLY = "Easterly"
+    UNKNOWN = "Unknown"
 
 
 class OverheadImpact(StrEnum):
     HIGH = "HIGH"  # 27L or 09R arrivals — directly over Isleworth
     LOW = "LOW"  # 27R or 09L arrivals — further north
-    NONE = "none"  # easterly departures overhead (different character)
-    UNKNOWN = "unknown"
+    NONE = "None"  # not applicable
+    UNKNOWN = "Unknown"
 
 
 @dataclass
@@ -25,12 +25,12 @@ class RunwayState:
     """Current observed runway state from aircraft.json."""
 
     mode: OperationsMode = OperationsMode.UNKNOWN
-    arrivals_runway: str = "unknown"  # e.g. "27L", "27R", "09L"
-    departures_runway: str = "unknown"
+    arrivals_runway: str = "Unknown"
+    departures_runway: str = "Unknown"
     overhead_impact: OverheadImpact = OverheadImpact.UNKNOWN
-    aircraft_seen: int = 0  # arrivals counted in last poll
+    aircraft_seen: int = 0
     observed_at: datetime = field(default_factory=datetime.utcnow)
-    confidence: str = "low"  # low / medium / high
+    confidence: str = "low"
 
 
 @dataclass
@@ -41,7 +41,7 @@ class SchedulePeriod:
     end: datetime
     arrivals_runway: str
     overhead_impact: OverheadImpact
-    is_scheduled: bool = True  # False = deviation detected
+    is_scheduled: bool = True
 
 
 @dataclass

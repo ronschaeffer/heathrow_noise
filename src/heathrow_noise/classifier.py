@@ -111,8 +111,8 @@ def classify(
     if not runway_hits:
         return RunwayState(
             mode=OperationsMode.UNKNOWN,
-            arrivals_runway="unknown",
-            departures_runway="unknown",
+            arrivals_runway="Unknown",
+            departures_runway="Unknown",
             overhead_impact=OverheadImpact.UNKNOWN,
             aircraft_seen=0,
             observed_at=datetime.now(UTC),

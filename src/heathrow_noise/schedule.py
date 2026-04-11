@@ -18,11 +18,6 @@ from heathrow_noise.models import ForwardSchedule, OverheadImpact, SchedulePerio
 
 logger = logging.getLogger(__name__)
 
-# Daytime operational hours
-_DAY_START = time(6, 0)
-_SWITCHOVER = time(15, 0)
-_DAY_END = time(23, 0)  # approximate last departure
-
 
 def _week_number_from_anchor(anchor: date, target: date) -> int:
     """Return weeks elapsed since anchor (0-indexed)."""
@@ -38,9 +33,7 @@ def arrivals_runway_for_period(
 ) -> str:
     """Return the scheduled arrivals runway for a given date and period."""
     weeks = _week_number_from_anchor(anchor_date, target_date)
-    # Each week flips; even weeks = anchor pattern, odd weeks = flipped
     flipped = (weeks % 2) == 1
-
     anchor_pm = "27L" if anchor_am_runway == "27R" else "27R"
 
     if not flipped:
@@ -70,27 +63,24 @@ def compute_schedule(
     anchor_date = date.fromisoformat(anchor_str)
 
     now = from_dt or datetime.now(UTC)
-    periods: list[SchedulePeriod] = []
+    all_periods: list[SchedulePeriod] = []
 
-    # Generate periods day by day for lookahead_days
     for day_offset in range(lookahead + 1):
         d = now.date() + timedelta(days=day_offset)
 
-        # AM period: 06:00–15:00
         am_start = datetime.combine(d, time(6, 0), tzinfo=UTC)
         am_end = datetime.combine(d, time(switchover_hour, 0), tzinfo=UTC)
         am_runway = arrivals_runway_for_period(
             d, is_am=True, anchor_date=anchor_date, anchor_am_runway=anchor_am
         )
 
-        # PM period: 15:00–23:00
         pm_start = am_end
         pm_end = datetime.combine(d, time(23, 0), tzinfo=UTC)
         pm_runway = arrivals_runway_for_period(
             d, is_am=False, anchor_date=anchor_date, anchor_am_runway=anchor_am
         )
 
-        periods.append(
+        all_periods.append(
             SchedulePeriod(
                 start=am_start,
                 end=am_end,
@@ -98,7 +88,7 @@ def compute_schedule(
                 overhead_impact=_impact_for_runway(am_runway, config),
             )
         )
-        periods.append(
+        all_periods.append(
             SchedulePeriod(
                 start=pm_start,
                 end=pm_end,
@@ -107,22 +97,44 @@ def compute_schedule(
             )
         )
 
-    # Trim past periods, keep from current period onward
-    periods = [p for p in periods if p.end > now]
+    # Find which period is current (now falls within it)
+    current_period: SchedulePeriod | None = None
+    for p in all_periods:
+        if p.start <= now < p.end:
+            current_period = p
+            break
 
-    # Find next switch and next quiet start
-    next_switch = periods[1].start if len(periods) > 1 else None
+    # Future periods = those that start after now
+    future_periods = [p for p in all_periods if p.start > now]
+
+    # next_switch = start of the very next period boundary after now
+    next_switch = future_periods[0].start if future_periods else None
+
+    # next_quiet = next future period with LOW impact
+    # (skip current even if LOW — we want the *next* change)
     next_quiet = next(
-        (p.start for p in periods if p.overhead_impact == OverheadImpact.LOW),
+        (p.start for p in future_periods if p.overhead_impact == OverheadImpact.LOW),
         None,
     )
+
+    # next_high = next future period with HIGH impact
     next_high = next(
-        (p.start for p in periods if p.overhead_impact == OverheadImpact.HIGH),
+        (p.start for p in future_periods if p.overhead_impact == OverheadImpact.HIGH),
         None,
     )
+
+    # If currently in HIGH, next_quiet is the more useful "relief" timestamp
+    # If currently in LOW, next_high is the more useful "incoming noise" timestamp
+    # Both are already correct from the future_periods search above.
+
+    # Periods to publish: current + future, capped at lookahead days
+    periods_to_publish = []
+    if current_period:
+        periods_to_publish.append(current_period)
+    periods_to_publish.extend(future_periods[: lookahead * 2])
 
     return ForwardSchedule(
-        periods=periods[: lookahead * 2],
+        periods=periods_to_publish,
         computed_at=now,
         next_switch=next_switch,
         next_high_impact_start=next_high,

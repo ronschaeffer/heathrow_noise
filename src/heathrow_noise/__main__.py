@@ -5,11 +5,14 @@ from __future__ import annotations
 import argparse
 from datetime import UTC, datetime
 import logging
-import signal
 import threading
 import time
 
-from ha_mqtt_publisher import AvailabilityPublisher, HealthTracker
+from ha_mqtt_publisher import (
+    AvailabilityPublisher,
+    HealthTracker,
+    install_signal_handlers,
+)
 
 from heathrow_noise.classifier import classify
 from heathrow_noise.config import Config
@@ -30,7 +33,7 @@ logger = logging.getLogger(__name__)
 def _configure_logging(level: str = "INFO") -> None:
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        format="%(asctime)s - %(levelname)s - %(name)s: %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
 
@@ -44,7 +47,8 @@ def cmd_service(config: Config) -> None:
 
     publisher = create_publisher(config)
 
-    # Wire MQTT health tracking before starting web server
+    # Wire MQTT health tracking before starting web server so /health/mqtt
+    # exists when uvicorn starts and Docker HEALTHCHECK can probe it.
     health_tracker = HealthTracker(max_publish_age_seconds=poll_interval * 3)
     health_tracker.attach(publisher)
 
@@ -53,16 +57,13 @@ def cmd_service(config: Config) -> None:
 
     publisher.connect()
 
-    # Availability
-    availability = AvailabilityPublisher(
-        publisher=publisher,
-        topic=availability_topic,
-    )
+    # AvailabilityPublisher(client, topic) — positional args
+    availability = AvailabilityPublisher(publisher, availability_topic)
     availability.online(retain=True)
 
     publish_discovery(config, publisher)
 
-    # Re-publish discovery on reconnect
+    # Re-publish discovery + availability on reconnect
     _orig_on_connect = publisher.client.on_connect
 
     def _on_reconnect(client, userdata, *args, **kwargs):
@@ -78,65 +79,57 @@ def cmd_service(config: Config) -> None:
 
     publisher.client.on_connect = _on_reconnect
 
+    # Graceful shutdown
     shutdown_event = threading.Event()
 
-    def _shutdown(signum, _frame):
-        logger.info("Signal %s received, shutting down", signum)
-        shutdown_event.set()
+    with install_signal_handlers(shutdown_cb=shutdown_event.set):
+        # State shared across loop iterations
+        current_state = HeathrowState()
+        deviations: list = []
+        feed_available = False
+        last_deviation_poll = 0.0
 
-    signal.signal(signal.SIGTERM, _shutdown)
-    signal.signal(signal.SIGINT, _shutdown)
+        while not shutdown_event.is_set():
+            loop_start = time.monotonic()
 
-    # State shared between loops
-    current_state = HeathrowState()
-    deviations: list = []
-    feed_available = False
-    last_deviation_poll = 0.0
+            # --- ADS-B receiver ---
+            aircraft_data, receiver_ok = fetch_aircraft(config)
+            if receiver_ok:
+                runway_state = classify(aircraft_data, config)
+            else:
+                runway_state = current_state.runway
+                runway_state.confidence = "low"
 
-    while not shutdown_event.is_set():
-        loop_start = time.monotonic()
+            # --- Forward schedule ---
+            schedule = compute_schedule(config)
 
-        # --- Poll aircraft.json ---
-        aircraft_data, receiver_ok = fetch_aircraft(config)
-        if receiver_ok:
-            runway_state = classify(aircraft_data, config)
-        else:
-            # Keep last known runway state, mark confidence low
-            runway_state = current_state.runway
-            runway_state.confidence = "low"
+            # --- Deviation feed (less frequent) ---
+            now_ts = time.monotonic()
+            if now_ts - last_deviation_poll >= deviation_interval:
+                deviations, feed_available = fetch_deviations(config)
+                last_deviation_poll = now_ts
+                if deviations:
+                    logger.info("%d deviation notice(s) active", len(deviations))
 
-        # --- Recompute schedule ---
-        schedule = compute_schedule(config)
+            # --- Combine and publish ---
+            current_state = HeathrowState(
+                runway=runway_state,
+                schedule=schedule,
+                deviations=deviations,
+                last_updated=datetime.now(UTC),
+                feed_available=feed_available,
+            )
 
-        # --- Poll deviation feed (less frequently) ---
-        now_ts = time.monotonic()
-        if now_ts - last_deviation_poll >= deviation_interval:
-            deviations, feed_available = fetch_deviations(config)
-            last_deviation_poll = now_ts
-            if deviations:
-                logger.info("Deviation notices: %d active", len(deviations))
+            try:
+                publish_state(config, publisher, current_state)
+            except Exception:
+                logger.exception("Failed to publish MQTT state")
 
-        # --- Build combined state ---
-        current_state = HeathrowState(
-            runway=runway_state,
-            schedule=schedule,
-            deviations=deviations,
-            last_updated=datetime.now(UTC),
-            feed_available=feed_available,
-        )
+            update_state(current_state)
 
-        # --- Publish to MQTT and update web server ---
-        try:
-            publish_state(config, publisher, current_state)
-        except Exception:
-            logger.exception("Failed to publish MQTT state")
-
-        update_state(current_state)
-
-        # --- Sleep until next poll ---
-        elapsed = time.monotonic() - loop_start
-        sleep_for = max(0, poll_interval - elapsed)
-        shutdown_event.wait(timeout=sleep_for)
+            # --- Sleep until next poll ---
+            elapsed = time.monotonic() - loop_start
+            shutdown_event.wait(timeout=max(0.0, poll_interval - elapsed))
 
     # Graceful shutdown
     try:

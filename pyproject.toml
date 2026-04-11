@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "heathrow-noise"
-version = "0.1.5"
+version = "0.1.6"
 description = "Heathrow runway alternation tracker — publishes noise impact sensors to Home Assistant via MQTT"
 authors = ["Ron Schaeffer <ron@ronschaeffer.com>"]
 readme = "README.md"

@@ -56,6 +56,21 @@ def _iso(dt: datetime | None) -> str:
     return dt.isoformat()
 
 
+def _fmt(dt: datetime | None) -> str:
+    """Human-readable London-time string for web UI."""
+    if dt is None:
+        return "unknown"
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    try:
+        from zoneinfo import ZoneInfo
+
+        dt = dt.astimezone(ZoneInfo("Europe/London"))
+    except Exception:
+        pass
+    return dt.strftime("%a %d %b, %H:%M %Z")
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     state: HeathrowState | None = _state_ref.get("heathrow_state")
@@ -97,7 +112,7 @@ def index() -> str:
             {rwy.overhead_impact.value} IMPACT
           </span>
           &nbsp;|&nbsp;
-          <strong>{rwy.mode.value.upper()}</strong> ops
+          <strong>{rwy.mode.value}</strong> ops
           &nbsp;|&nbsp;
           Arrivals on <strong>{rwy.arrivals_runway}</strong>
           &nbsp;|&nbsp;
@@ -106,8 +121,8 @@ def index() -> str:
           {rwy.aircraft_seen} aircraft seen
         </div>
         <p>
-          Next switch: <strong>{_iso(sched.next_switch) or "unknown"}</strong><br>
-          Next quiet: <strong>{_iso(sched.next_quiet_start) or "unknown"}</strong><br>
+          Next switch: <strong>{_fmt(sched.next_switch)}</strong><br>
+          Next quiet: <strong>{_fmt(sched.next_quiet_start)}</strong><br>
           Feed: {"✅ available" if state.feed_available else "❌ unavailable"}
         </p>
         {deviations_html}
@@ -117,7 +132,7 @@ def index() -> str:
           {rows}
         </table>
         <p style="color:#888;font-size:0.8rem">
-          Updated: {_iso(state.last_updated)}
+          Updated: {_fmt(state.last_updated)}
         </p>
         """
 

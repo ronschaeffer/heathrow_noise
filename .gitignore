@@ -7,4 +7,3 @@ dist/
 .ruff_cache/
 *.env
 .env
-poetry.lock

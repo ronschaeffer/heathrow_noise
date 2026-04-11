@@ -1,18 +1,28 @@
-FROM python:3.11-slim
+# --- Builder stage ---
+FROM python:3.11-slim AS builder
+WORKDIR /build
 
+RUN pip install --no-cache-dir poetry poetry-plugin-export
+
+COPY pyproject.toml poetry.lock ./
+RUN poetry export -f requirements.txt --without dev -o requirements.txt
+
+COPY . .
+RUN poetry build -f wheel
+
+# --- Runtime stage ---
+FROM python:3.11-slim
 WORKDIR /app
 
-# Install poetry
-RUN pip install --no-cache-dir poetry==1.8.3
+COPY --from=builder /build/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt
 
-# Copy dependency files first for layer caching
-COPY pyproject.toml poetry.lock* ./
-RUN poetry config virtualenvs.create false \
-    && poetry install --only main --no-interaction --no-ansi
+COPY --from=builder /build/dist/*.whl /tmp/
+RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
-# Copy source
-COPY src/ ./src/
-COPY config/ ./config/
+COPY config/config.yaml /app/config/config.yaml
+
+RUN mkdir -p /app/config
 
 ENV HEATHROW_NOISE_CONFIG=/app/config/config.yaml
 ENV PYTHONUNBUFFERED=1

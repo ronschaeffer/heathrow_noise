@@ -17,9 +17,19 @@ logger = logging.getLogger(__name__)
 
 
 def create_publisher(config: Config) -> MQTTPublisher:
-    broker_url = config.get("mqtt.broker_url", "mqtt://localhost:1883")
+    """Create MQTTPublisher from config.
+
+    Config mqtt.broker_url is a plain host or IP (not a URL scheme).
+    mqtt.broker_port is a separate integer, defaulting to 1883.
+    """
+    broker_host = config.get("mqtt.broker_host", "10.10.10.20")
+    broker_port = config.get_int("mqtt.broker_port", 1883)
     client_id = config.get("mqtt.client_id", "heathrow_noise")
-    return MQTTPublisher(broker_url=broker_url, client_id=client_id)
+    return MQTTPublisher(
+        broker_url=broker_host,
+        broker_port=broker_port,
+        client_id=client_id,
+    )
 
 
 def _create_device(config: Config) -> Device:

@@ -50,7 +50,8 @@ schedule:
   switchover_hour: 15              # 15:00 daily switch
 
 mqtt:
-  broker_url: "mqtt://10.10.10.20:1883"
+  broker_host: "10.10.10.20"
+  broker_port: 1883
   client_id: "heathrow_noise"
   discovery_prefix: "homeassistant"
 

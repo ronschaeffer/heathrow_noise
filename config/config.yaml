@@ -1,0 +1,59 @@
+app:
+  name: "Heathrow Noise"
+  unique_id_prefix: "heathrow_noise"
+  poll_interval_seconds: 60        # how often to re-read aircraft.json
+  schedule_lookahead_days: 7       # days of forward schedule to publish
+
+# Your ADS-B receiver (FLIGHTTRACK host)
+adsb:
+  aircraft_json_url: "http://10.10.10.234/tar1090/data/aircraft.json"
+  # Heathrow bounding box for filtering — aircraft must be inside this box
+  # and below max_altitude_ft to count for runway classification
+  heathrow_lat: 51.4775
+  heathrow_lon: -0.4614
+  classification_radius_km: 12.0   # radius around Heathrow to look for arrivals
+  max_altitude_ft: 4000            # ignore high-altitude transits
+
+# Your house coordinates (used for approach proximity & overhead detection)
+home:
+  lat: 51.46234642850292
+  lon: -0.32897472370677866
+
+# Runway geometry (ILS centreline lat for each runway)
+runways:
+  "27L":
+    centreline_lat: 51.4647        # southern runway — impactful for you
+    impact: "HIGH"
+  "27R":
+    centreline_lat: 51.4775        # northern runway — less impactful
+    impact: "LOW"
+  "09L":
+    centreline_lat: 51.4775        # easterly — northern
+    impact: "LOW"
+  "09R":
+    centreline_lat: 51.4647        # easterly — southern
+    impact: "HIGH"
+
+# Deviation feed — xcancel RSS mirror of @HeathrowRunways
+deviation_feed:
+  enabled: true
+  url: "https://rss.xcancel.com/HeathrowRunways/rss"
+  poll_interval_seconds: 600       # 10 minutes
+  user_agent: "Mozilla/5.0 (compatible; heathrow-noise/0.1)"
+  max_age_hours: 24                # ignore posts older than this
+
+# Schedule anchor — daytime alternation (westerly only)
+# Week of 7 Apr 2025: 27R AM / 27L PM  (used as reference anchor)
+schedule:
+  anchor_date: "2025-04-07"        # Monday week-commencing
+  anchor_am_runway: "27R"          # arrivals runway 06:00–15:00 that week
+  switchover_hour: 15              # 15:00 daily switch
+
+mqtt:
+  broker_url: "mqtt://10.10.10.20:1883"
+  client_id: "heathrow_noise"
+  discovery_prefix: "homeassistant"
+
+web:
+  port: 47480
+  external_url: ""                 # set to http://server:47480 for Docker

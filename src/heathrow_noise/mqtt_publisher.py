@@ -273,11 +273,11 @@ def publish_state(
             f"{schedule_payload[0]['runway'] if schedule_payload else 'n/a'}"
         ),
         "deviation_active": "yes" if state.deviations else "no",
-        "deviation_text": "; ".join(deviation_texts) if deviation_texts else "none",
+        "deviation_text": "; ".join(deviation_texts) if deviation_texts else "None",
         "feed_available": "yes" if state.feed_available else "no",
         "aircraft_seen": str(rwy.aircraft_seen),
         "classifier_confidence": rwy.confidence,
-        "status": "ok" if rwy.mode != OperationsMode.UNKNOWN else "classifying",
+        "status": "Ok" if rwy.mode != OperationsMode.UNKNOWN else "Classifying",
     }
 
     for key, value in payloads.items():

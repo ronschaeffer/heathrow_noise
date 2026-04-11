@@ -116,7 +116,7 @@ def classify(
             overhead_impact=OverheadImpact.UNKNOWN,
             aircraft_seen=0,
             observed_at=datetime.now(UTC),
-            confidence="low",
+            confidence="Low",
         )
 
     # Most-seen runway is the arrivals runway
@@ -125,11 +125,11 @@ def classify(
     dominant_fraction = runway_hits[arrivals_runway] / total
 
     if dominant_fraction > 0.75:
-        confidence = "high"
+        confidence = "High"
     elif dominant_fraction > 0.5:
-        confidence = "medium"
+        confidence = "Medium"
     else:
-        confidence = "low"
+        confidence = "Low"
 
     # Derive ops mode and departures runway
     if arrivals_runway in ("27L", "27R"):

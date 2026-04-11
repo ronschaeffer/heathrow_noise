@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 import logging
-import socket
 import threading
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from ha_mqtt_publisher import HealthTracker, make_fastapi_router
 import uvicorn
@@ -26,26 +25,10 @@ _state_ref: dict[str, Any] = {
     "heathrow_state": None,
     "config": None,
     "port": 47480,
-    "external_url": "",
 }
 
 
-def _get_lan_ip() -> str:
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return "127.0.0.1"
-
-
-def _base_url() -> str:
-    ext = _state_ref.get("external_url", "")
-    if ext:
-        return ext.rstrip("/")
-    return f"http://{_get_lan_ip()}:{_state_ref['port']}"
+# Base URL is derived from the incoming request (see index())
 
 
 def _iso(dt: datetime | None) -> str:
@@ -72,9 +55,11 @@ def _fmt(dt: datetime | None) -> str:
 
 
 @app.get("/", response_class=HTMLResponse)
-def index() -> str:
+def index(request: Request) -> str:
     state: HeathrowState | None = _state_ref.get("heathrow_state")
-    base = _base_url()
+    # Derive base URL from incoming request so links work from any address:
+    # IP, hostname, or Cloudflare tunnel (heathrownoise.homelab.haus)
+    base = str(request.base_url).rstrip("/")
 
     if state is None:
         body = "<p>Initialising — no data yet.</p>"
@@ -228,11 +213,9 @@ def update_state(state: HeathrowState) -> None:
 def start_server(config: Config, health_tracker: HealthTracker) -> str:
     """Start uvicorn in a daemon thread. Returns the base URL."""
     port = config.get_int("web.port", 47480)
-    ext_url = config.get("web.external_url", "")
 
     _state_ref["config"] = config
     _state_ref["port"] = port
-    _state_ref["external_url"] = ext_url
 
     attach_health_router(health_tracker)
 
@@ -243,5 +226,4 @@ def start_server(config: Config, health_tracker: HealthTracker) -> str:
     t.start()
     logger.info("Web server started on port %d", port)
 
-    base = ext_url.rstrip("/") if ext_url else f"http://localhost:{port}"
-    return base
+    return f"http://localhost:{port}"

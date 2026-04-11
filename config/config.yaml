@@ -57,4 +57,3 @@ mqtt:
 
 web:
   port: 47480
-  external_url: ""                 # set to http://server:47480 for Docker

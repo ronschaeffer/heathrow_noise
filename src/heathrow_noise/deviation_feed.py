@@ -49,6 +49,10 @@ def fetch_deviations(config: Config) -> tuple[list[DeviationNotice], bool]:
 
     try:
         feed = feedparser.parse(url, request_headers={"User-Agent": user_agent})
+        status = getattr(feed, "status", 200)
+        if status >= 400:
+            logger.warning("RSS feed returned HTTP %d — feed unavailable", status)
+            return [], False
         if feed.bozo and not feed.entries:
             logger.warning("RSS feed parse error: %s", feed.bozo_exception)
             return [], False

@@ -65,7 +65,7 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             unique_id="arrivals_runway",
             name="Arrivals Runway",
             state_topic=topic("arrivals_runway"),
-            icon="mdi:runway",
+            icon="mdi:airport",
         ),
         Entity(
             config,
@@ -157,6 +157,7 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             name="Aircraft on Approach",
             state_topic=topic("aircraft_seen"),
             unit_of_measurement="aircraft",
+            state_class="measurement",
             icon="mdi:airplane-landing",
         ),
         Entity(
@@ -188,6 +189,7 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             name="Schedule Agreement Rate",
             state_topic=topic("schedule_agreement_rate"),
             unit_of_measurement="%",
+            state_class="measurement",
             entity_category="diagnostic",
             icon="mdi:chart-line",
         ),
@@ -328,7 +330,9 @@ def publish_state(
             f"{schedule_payload[0]['runway'] if schedule_payload else 'n/a'}"
         ),
         "deviation_active": "yes" if state.deviations else "no",
-        "deviation_text": "; ".join(deviation_texts) if deviation_texts else "None",
+        "deviation_text": (
+            "; ".join(deviation_texts) if deviation_texts else "No active notices"
+        ),
         "feed_available": "yes" if state.feed_available else "no",
         "aircraft_seen": str(rwy.aircraft_seen),
         "classifier_confidence": rwy.confidence,

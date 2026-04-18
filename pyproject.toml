@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "heathrow-noise"
-version = "0.1.7"
+version = "0.2.0"
 description = "Heathrow runway alternation tracker — publishes noise impact sensors to Home Assistant via MQTT"
 authors = ["Ron Schaeffer <ron@ronschaeffer.com>"]
 readme = "README.md"
@@ -14,6 +14,7 @@ uvicorn = {extras = ["standard"], version = ">=0.29.0"}
 httpx = ">=0.27.0"
 pyyaml = ">=6.0"
 haversine = ">=2.8.0"
+pypdf = "^6.10.2"
 feedparser = ">=6.0.11"
 
 [tool.poetry.group.dev.dependencies]

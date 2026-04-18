@@ -7,14 +7,12 @@ app:
 # Your ADS-B receiver (FLIGHTTRACK host)
 adsb:
   aircraft_json_url: "http://10.10.10.234/tar1090/data/aircraft.json"
-  # Heathrow bounding box for filtering — aircraft must be inside this box
-  # and below max_altitude_ft to count for runway classification
   heathrow_lat: 51.4775
   heathrow_lon: -0.4614
   classification_radius_km: 12.0   # radius around Heathrow to look for arrivals
   max_altitude_ft: 4000            # ignore high-altitude transits
 
-# Your house coordinates (used for approach proximity & overhead detection)
+# Your house coordinates
 home:
   lat: 51.46234642850292
   lon: -0.32897472370677866
@@ -48,6 +46,15 @@ schedule:
   anchor_date: "2025-04-07"        # Monday week-commencing
   anchor_am_runway: "27R"          # arrivals runway 06:00–15:00 that week
   switchover_hour: 15              # 15:00 daily switch
+
+# Schedule validation — rolling drift detection + PDF cross-check
+validation:
+  lookback_samples: 20             # rolling buffer size for agreement rate
+  disagreement_threshold: 0.40     # rate above which PDF check is considered
+  trigger_consecutive: 5           # consecutive disagreements before PDF fetch
+  pdf_recheck_interval_hours: 24   # minimum hours between PDF checks
+  pdf_failure_limit: 3             # consecutive PDF failures → pdf_feed_degraded
+  state_file: "/app/config/validation_state.json"
 
 mqtt:
   broker_host: "10.10.10.20"

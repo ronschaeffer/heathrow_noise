@@ -8,24 +8,17 @@ import logging
 import threading
 import time
 
-from ha_mqtt_publisher import (
-    AvailabilityPublisher,
-    HealthTracker,
-    install_signal_handlers,
-)
+from ha_mqtt_publisher import AvailabilityPublisher, HealthTracker, install_signal_handlers
 
 from heathrow_noise.classifier import classify
 from heathrow_noise.config import Config
 from heathrow_noise.deviation_feed import fetch_deviations
 from heathrow_noise.models import HeathrowState
-from heathrow_noise.mqtt_publisher import (
-    create_publisher,
-    publish_discovery,
-    publish_state,
-)
+from heathrow_noise.mqtt_publisher import create_publisher, publish_discovery, publish_state
 from heathrow_noise.receiver import fetch_aircraft
 from heathrow_noise.schedule import compute_schedule
 from heathrow_noise.server import start_server, update_state
+from heathrow_noise.validator import Validator
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +39,8 @@ def cmd_service(config: Config) -> None:
     availability_topic = f"{prefix}/availability"
 
     publisher = create_publisher(config)
+    validator = Validator(config)
 
-    # Wire MQTT health tracking before starting web server so /health/mqtt
-    # exists when uvicorn starts and Docker HEALTHCHECK can probe it.
     health_tracker = HealthTracker(max_publish_age_seconds=poll_interval * 3)
     health_tracker.attach(publisher)
 
@@ -57,13 +49,11 @@ def cmd_service(config: Config) -> None:
 
     publisher.connect()
 
-    # AvailabilityPublisher(client, topic) — positional args
     availability = AvailabilityPublisher(publisher, availability_topic)
     availability.online(retain=True)
 
     publish_discovery(config, publisher)
 
-    # Re-publish discovery + availability on reconnect
     _orig_on_connect = publisher.client.on_connect
 
     def _on_reconnect(client, userdata, *args, **kwargs):
@@ -79,11 +69,9 @@ def cmd_service(config: Config) -> None:
 
     publisher.client.on_connect = _on_reconnect
 
-    # Graceful shutdown
     shutdown_event = threading.Event()
 
     with install_signal_handlers(shutdown_cb=shutdown_event.set):
-        # State shared across loop iterations
         current_state = HeathrowState()
         deviations: list = []
         feed_available = False
@@ -111,6 +99,24 @@ def cmd_service(config: Config) -> None:
                 if deviations:
                     logger.info("%d deviation notice(s) active", len(deviations))
 
+            # --- Schedule validation ---
+            # schedule.periods[0] is the current period when inside 06:00–23:00;
+            # record() gates out ineligible observations via its own hour check.
+            predicted_runway = (
+                schedule.periods[0].arrivals_runway if schedule.periods else "Unknown"
+            )
+            validator.record(
+                predicted_runway=predicted_runway,
+                observed_runway=runway_state.arrivals_runway,
+                confidence=runway_state.confidence,
+                deviation_active=bool(deviations),
+                mode=runway_state.mode,
+            )
+            validation_result = validator.compute(
+                observed_runway=runway_state.arrivals_runway,
+                predicted_runway=predicted_runway,
+            )
+
             # --- Combine and publish ---
             current_state = HeathrowState(
                 runway=runway_state,
@@ -118,6 +124,7 @@ def cmd_service(config: Config) -> None:
                 deviations=deviations,
                 last_updated=datetime.now(UTC),
                 feed_available=feed_available,
+                validation=validation_result,
             )
 
             try:
@@ -127,11 +134,9 @@ def cmd_service(config: Config) -> None:
 
             update_state(current_state)
 
-            # --- Sleep until next poll ---
             elapsed = time.monotonic() - loop_start
             shutdown_event.wait(timeout=max(0.0, poll_interval - elapsed))
 
-    # Graceful shutdown
     try:
         availability.offline(retain=True)
         publisher.disconnect()
@@ -172,16 +177,10 @@ def cmd_status(config: Config) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Heathrow Noise Tracker")
-    parser.add_argument(
-        "--config",
-        default=None,
-        help="Path to config.yaml (default: config/config.yaml)",
-    )
-    parser.add_argument(
-        "--log-level",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-    )
+    parser.add_argument("--config", default=None,
+                        help="Path to config.yaml (default: config/config.yaml)")
+    parser.add_argument("--log-level", default="INFO",
+                        choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("service", help="Run the long-running service")
     sub.add_parser("status", help="Print current status and exit")
@@ -190,7 +189,6 @@ def main() -> None:
     _configure_logging(args.log_level)
 
     from pathlib import Path
-
     config = Config(Path(args.config) if args.config else None)
 
     if args.command == "service":

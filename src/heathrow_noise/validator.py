@@ -1,4 +1,5 @@
-"""Rolling validation of the schedule engine against ADS-B observations and the Heathrow PDF.
+"""Rolling validation of the schedule engine against ADS-B observations
+and the Heathrow PDF.
 
 Phase 1: collect up to lookback_samples eligible observations (westerly,
 high-confidence, no deviation, 07:00–22:00 UTC) and track the agreement rate
@@ -25,11 +26,11 @@ are persisted to JSON after every mutation so history survives container restart
 
 from __future__ import annotations
 
-import json
-import logging
 from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
+import json
+import logging
 from pathlib import Path
 
 from heathrow_noise.config import Config
@@ -48,8 +49,8 @@ class _Sample:
 
 @dataclass
 class _PDFCheck:
-    checked_at: str           # ISO-8601
-    result: str               # "match" | "mismatch" | "ambiguous" | "unavailable"
+    checked_at: str  # ISO-8601
+    result: str  # "match" | "mismatch" | "ambiguous" | "unavailable"
     source_url: str
     detail: str
     consecutive_failures: int = 0
@@ -188,7 +189,9 @@ class Validator:
                 checked_at=now.isoformat(),
                 result="unavailable",
                 source_url=result.source_url,
-                detail="Current week not found in PDF — possible year-boundary edge case",
+                detail=(
+                    "Current week not found in PDF — possible year-boundary edge case"
+                ),
                 consecutive_failures=0,
             )
 

@@ -8,13 +8,21 @@ import logging
 import threading
 import time
 
-from ha_mqtt_publisher import AvailabilityPublisher, HealthTracker, install_signal_handlers
+from ha_mqtt_publisher import (
+    AvailabilityPublisher,
+    HealthTracker,
+    install_signal_handlers,
+)
 
 from heathrow_noise.classifier import classify
 from heathrow_noise.config import Config
 from heathrow_noise.deviation_feed import fetch_deviations
 from heathrow_noise.models import HeathrowState
-from heathrow_noise.mqtt_publisher import create_publisher, publish_discovery, publish_state
+from heathrow_noise.mqtt_publisher import (
+    create_publisher,
+    publish_discovery,
+    publish_state,
+)
 from heathrow_noise.receiver import fetch_aircraft
 from heathrow_noise.schedule import compute_schedule
 from heathrow_noise.server import start_server, update_state
@@ -177,10 +185,14 @@ def cmd_status(config: Config) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Heathrow Noise Tracker")
-    parser.add_argument("--config", default=None,
-                        help="Path to config.yaml (default: config/config.yaml)")
-    parser.add_argument("--log-level", default="INFO",
-                        choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    parser.add_argument(
+        "--config",
+        default=None,
+        help="Path to config.yaml (default: config/config.yaml)",
+    )
+    parser.add_argument(
+        "--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"]
+    )
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("service", help="Run the long-running service")
     sub.add_parser("status", help="Print current status and exit")
@@ -189,6 +201,7 @@ def main() -> None:
     _configure_logging(args.log_level)
 
     from pathlib import Path
+
     config = Config(Path(args.config) if args.config else None)
 
     if args.command == "service":

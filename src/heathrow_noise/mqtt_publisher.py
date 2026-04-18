@@ -49,64 +49,195 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
 
     return [
         # --- Core operational sensors ---
-        Entity(config, device, component="sensor", unique_id="mode",
-               name="Operations Mode", state_topic=topic("mode"), icon="mdi:airplane"),
-        Entity(config, device, component="sensor", unique_id="arrivals_runway",
-               name="Arrivals Runway", state_topic=topic("arrivals_runway"), icon="mdi:runway"),
-        Entity(config, device, component="sensor", unique_id="overhead_impact",
-               name="Overhead Impact", state_topic=topic("overhead_impact"), icon="mdi:home-sound-in"),
-        Entity(config, device, component="sensor", unique_id="next_switch",
-               name="Next Runway Switch", state_topic=topic("next_switch"),
-               device_class="timestamp", icon="mdi:clock-outline"),
-        Entity(config, device, component="sensor", unique_id="next_quiet",
-               name="Next Quiet Period", state_topic=topic("next_quiet"),
-               device_class="timestamp", icon="mdi:volume-off"),
-        Entity(config, device, component="sensor", unique_id="next_high_impact",
-               name="Next High Impact Period", state_topic=topic("next_high_impact"),
-               device_class="timestamp", icon="mdi:volume-high"),
-        Entity(config, device, component="sensor", unique_id="schedule_json",
-               name="Schedule", state_topic=topic("schedule_summary"),
-               json_attributes_topic=topic("schedule_json"), icon="mdi:calendar-clock"),
-        Entity(config, device, component="binary_sensor", unique_id="deviation_active",
-               name="Deviation Active", state_topic=topic("deviation_active"),
-               payload_on="yes", payload_off="no", device_class="problem",
-               icon="mdi:alert-circle-outline"),
-        Entity(config, device, component="sensor", unique_id="deviation_text",
-               name="Deviation Notice", state_topic=topic("deviation_text"),
-               icon="mdi:text-box-outline"),
-        Entity(config, device, component="binary_sensor", unique_id="feed_available",
-               name="Feed Available", state_topic=topic("feed_available"),
-               payload_on="yes", payload_off="no", device_class="connectivity",
-               entity_category="diagnostic"),
-        Entity(config, device, component="sensor", unique_id="aircraft_seen",
-               name="Aircraft on Approach", state_topic=topic("aircraft_seen"),
-               unit_of_measurement="aircraft", icon="mdi:airplane-landing"),
-        Entity(config, device, component="sensor", unique_id="classifier_confidence",
-               name="Classifier Confidence", state_topic=topic("classifier_confidence"),
-               entity_category="diagnostic", icon="mdi:chart-bar"),
-        Entity(config, device, component="sensor", unique_id="status",
-               name="Status", state_topic=topic("status"),
-               entity_category="diagnostic", icon="mdi:information-outline"),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="mode",
+            name="Operations Mode",
+            state_topic=topic("mode"),
+            icon="mdi:airplane",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="arrivals_runway",
+            name="Arrivals Runway",
+            state_topic=topic("arrivals_runway"),
+            icon="mdi:runway",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="overhead_impact",
+            name="Overhead Impact",
+            state_topic=topic("overhead_impact"),
+            icon="mdi:home-sound-in",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="next_switch",
+            name="Next Runway Switch",
+            state_topic=topic("next_switch"),
+            device_class="timestamp",
+            icon="mdi:clock-outline",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="next_quiet",
+            name="Next Quiet Period",
+            state_topic=topic("next_quiet"),
+            device_class="timestamp",
+            icon="mdi:volume-off",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="next_high_impact",
+            name="Next High Impact Period",
+            state_topic=topic("next_high_impact"),
+            device_class="timestamp",
+            icon="mdi:volume-high",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="schedule_json",
+            name="Schedule",
+            state_topic=topic("schedule_summary"),
+            json_attributes_topic=topic("schedule_json"),
+            icon="mdi:calendar-clock",
+        ),
+        Entity(
+            config,
+            device,
+            component="binary_sensor",
+            unique_id="deviation_active",
+            name="Deviation Active",
+            state_topic=topic("deviation_active"),
+            payload_on="yes",
+            payload_off="no",
+            device_class="problem",
+            icon="mdi:alert-circle-outline",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="deviation_text",
+            name="Deviation Notice",
+            state_topic=topic("deviation_text"),
+            icon="mdi:text-box-outline",
+        ),
+        Entity(
+            config,
+            device,
+            component="binary_sensor",
+            unique_id="feed_available",
+            name="Feed Available",
+            state_topic=topic("feed_available"),
+            payload_on="yes",
+            payload_off="no",
+            device_class="connectivity",
+            entity_category="diagnostic",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="aircraft_seen",
+            name="Aircraft on Approach",
+            state_topic=topic("aircraft_seen"),
+            unit_of_measurement="aircraft",
+            icon="mdi:airplane-landing",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="classifier_confidence",
+            name="Classifier Confidence",
+            state_topic=topic("classifier_confidence"),
+            entity_category="diagnostic",
+            icon="mdi:chart-bar",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="status",
+            name="Status",
+            state_topic=topic("status"),
+            entity_category="diagnostic",
+            icon="mdi:information-outline",
+        ),
         # --- Schedule validation sensors ---
-        Entity(config, device, component="sensor", unique_id="schedule_agreement_rate",
-               name="Schedule Agreement Rate", state_topic=topic("schedule_agreement_rate"),
-               unit_of_measurement="%", entity_category="diagnostic", icon="mdi:chart-line"),
-        Entity(config, device, component="binary_sensor", unique_id="schedule_drift_suspected",
-               name="Schedule Drift Suspected", state_topic=topic("schedule_drift_suspected"),
-               payload_on="yes", payload_off="no", device_class="problem",
-               icon="mdi:alert-decagram-outline"),
-        Entity(config, device, component="sensor", unique_id="pdf_verification_result",
-               name="PDF Verification Result", state_topic=topic("pdf_verification_result"),
-               json_attributes_topic=topic("pdf_verification_detail"),
-               entity_category="diagnostic", icon="mdi:file-check-outline"),
-        Entity(config, device, component="sensor", unique_id="pdf_last_checked",
-               name="PDF Last Checked", state_topic=topic("pdf_last_checked"),
-               device_class="timestamp", entity_category="diagnostic",
-               icon="mdi:clock-check-outline"),
-        Entity(config, device, component="binary_sensor", unique_id="pdf_feed_degraded",
-               name="PDF Feed Degraded", state_topic=topic("pdf_feed_degraded"),
-               payload_on="yes", payload_off="no", device_class="problem",
-               entity_category="diagnostic", icon="mdi:file-alert-outline"),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="schedule_agreement_rate",
+            name="Schedule Agreement Rate",
+            state_topic=topic("schedule_agreement_rate"),
+            unit_of_measurement="%",
+            entity_category="diagnostic",
+            icon="mdi:chart-line",
+        ),
+        Entity(
+            config,
+            device,
+            component="binary_sensor",
+            unique_id="schedule_drift_suspected",
+            name="Schedule Drift Suspected",
+            state_topic=topic("schedule_drift_suspected"),
+            payload_on="yes",
+            payload_off="no",
+            device_class="problem",
+            icon="mdi:alert-decagram-outline",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="pdf_verification_result",
+            name="PDF Verification Result",
+            state_topic=topic("pdf_verification_result"),
+            json_attributes_topic=topic("pdf_verification_detail"),
+            entity_category="diagnostic",
+            icon="mdi:file-check-outline",
+        ),
+        Entity(
+            config,
+            device,
+            component="sensor",
+            unique_id="pdf_last_checked",
+            name="PDF Last Checked",
+            state_topic=topic("pdf_last_checked"),
+            device_class="timestamp",
+            entity_category="diagnostic",
+            icon="mdi:clock-check-outline",
+        ),
+        Entity(
+            config,
+            device,
+            component="binary_sensor",
+            unique_id="pdf_feed_degraded",
+            name="PDF Feed Degraded",
+            state_topic=topic("pdf_feed_degraded"),
+            payload_on="yes",
+            payload_off="no",
+            device_class="problem",
+            entity_category="diagnostic",
+            icon="mdi:file-alert-outline",
+        ),
     ]
 
 
@@ -139,8 +270,11 @@ def publish_discovery(config: Config, publisher: MQTTPublisher) -> None:
 
     payload = {
         "dev": dev,
-        "o": {"name": "heathrow_noise", "sw": __version__,
-              "url": "https://github.com/ronschaeffer/heathrow_noise"},
+        "o": {
+            "name": "heathrow_noise",
+            "sw": __version__,
+            "url": "https://github.com/ronschaeffer/heathrow_noise",
+        },
         "cmps": cmps,
         "availability": [{"topic": availability_topic}],
         "payload_available": "online",
@@ -149,7 +283,9 @@ def publish_discovery(config: Config, publisher: MQTTPublisher) -> None:
 
     topic = f"{disc_prefix}/device/{prefix}/config"
     publisher.publish(topic=topic, payload=json.dumps(payload), retain=True)
-    logger.info("Published HA discovery bundle (%d entities) to %s", len(entities), topic)
+    logger.info(
+        "Published HA discovery bundle (%d entities) to %s", len(entities), topic
+    )
 
 
 def _iso(dt: datetime | None) -> str:
@@ -160,15 +296,21 @@ def _iso(dt: datetime | None) -> str:
     return dt.isoformat()
 
 
-def publish_state(config: Config, publisher: MQTTPublisher, state: HeathrowState) -> None:
+def publish_state(
+    config: Config, publisher: MQTTPublisher, state: HeathrowState
+) -> None:
     """Publish all sensor states."""
     prefix = config.get("app.unique_id_prefix", "heathrow_noise")
     rwy = state.runway
     sched = state.schedule
 
     schedule_payload = [
-        {"start": _iso(p.start), "end": _iso(p.end),
-         "runway": p.arrivals_runway, "impact": p.overhead_impact.value}
+        {
+            "start": _iso(p.start),
+            "end": _iso(p.end),
+            "runway": p.arrivals_runway,
+            "impact": p.overhead_impact.value,
+        }
         for p in sched.periods[:14]
     ]
     deviation_texts = [d.text for d in state.deviations[:3]]
@@ -200,11 +342,13 @@ def publish_state(config: Config, publisher: MQTTPublisher, state: HeathrowState
         )
         payloads["schedule_drift_suspected"] = "yes" if v.drift_suspected else "no"
         payloads["pdf_verification_result"] = v.pdf_result
-        payloads["pdf_verification_detail"] = json.dumps({
-            "detail": v.pdf_detail,
-            "source": v.pdf_source,
-            "sample_count": v.sample_count,
-        })
+        payloads["pdf_verification_detail"] = json.dumps(
+            {
+                "detail": v.pdf_detail,
+                "source": v.pdf_source,
+                "sample_count": v.sample_count,
+            }
+        )
         payloads["pdf_last_checked"] = v.pdf_last_checked or "unavailable"
         payloads["pdf_feed_degraded"] = "yes" if v.pdf_feed_degraded else "no"
 
@@ -213,6 +357,9 @@ def publish_state(config: Config, publisher: MQTTPublisher, state: HeathrowState
 
     logger.debug(
         "Published: mode=%s runway=%s impact=%s confidence=%s deviations=%d",
-        rwy.mode.value, rwy.arrivals_runway, rwy.overhead_impact.value,
-        rwy.confidence, len(state.deviations),
+        rwy.mode.value,
+        rwy.arrivals_runway,
+        rwy.overhead_impact.value,
+        rwy.confidence,
+        len(state.deviations),
     )

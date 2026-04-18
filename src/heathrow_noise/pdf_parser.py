@@ -12,11 +12,11 @@ unavailable — never as a mismatch.
 
 from __future__ import annotations
 
-import logging
-import re
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from io import BytesIO
+import logging
+import re
 
 import httpx
 
@@ -27,9 +27,7 @@ _CDN_TEMPLATE = (
     "company/local-community/noise/operations/runway-alternation/"
     "Heathrow_Runway_Alternation_Programme_{year}.pdf"
 )
-_ALTERNATION_PAGE = (
-    "https://www.heathrow.com/company/local-community/noise/operations/runway-alternation"
-)
+_ALTERNATION_PAGE = "https://www.heathrow.com/company/local-community/noise/operations/runway-alternation"
 _PDF_HREF_RE = re.compile(
     r'href=["\']([^"\']*runway[_-]alternation[^"\']*\.pdf)["\']',
     re.IGNORECASE,
@@ -44,8 +42,8 @@ _ROW_RE = re.compile(
 @dataclass
 class PDFScheduleRow:
     week_start_str: str  # e.g. "13 Apr"
-    am_runway: str       # 06:00–15:00
-    pm_runway: str       # 15:00–last departure
+    am_runway: str  # 06:00–15:00
+    pm_runway: str  # 15:00–last departure
 
 
 @dataclass
@@ -58,6 +56,7 @@ class PDFParseResult:
 
 def _pdf_to_text(content: bytes) -> str:
     from pypdf import PdfReader
+
     reader = PdfReader(BytesIO(content))
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
@@ -73,7 +72,11 @@ def _discover_url(year: int, timeout: float) -> str | None:
             return None
         for href in matches:
             if str(year) in href:
-                return href if href.startswith("http") else f"https://www.heathrow.com{href}"
+                return (
+                    href
+                    if href.startswith("http")
+                    else f"https://www.heathrow.com{href}"
+                )
         href = matches[0]
         return href if href.startswith("http") else f"https://www.heathrow.com{href}"
     except Exception as exc:
@@ -95,6 +98,7 @@ def _fetch_bytes(url: str, timeout: float) -> bytes | None:
 def _parse_week_date(date_str: str, year: int) -> date | None:
     """Parse '5 Jan' → date, trying year and neighbours for Dec/Jan crossover."""
     from datetime import datetime
+
     for y in (year, year - 1, year + 1):
         try:
             return datetime.strptime(f"{date_str} {y}", "%d %b %Y").date()
@@ -106,6 +110,7 @@ def _parse_week_date(date_str: str, year: int) -> date | None:
 def fetch_and_parse(year: int | None = None, timeout: float = 15.0) -> PDFParseResult:
     """Fetch and parse Heathrow's daytime alternation schedule for year."""
     from datetime import UTC, datetime
+
     if year is None:
         year = datetime.now(UTC).year
 

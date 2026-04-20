@@ -14,8 +14,8 @@ class OperationsMode(StrEnum):
 
 
 class OverheadImpact(StrEnum):
-    HIGH = "HIGH"  # 27L or 09R arrivals — directly over Isleworth
-    LOW = "LOW"  # 27R or 09L arrivals — further north
+    HIGH = "High"  # 27L or 09R arrivals — directly over Isleworth
+    LOW = "Low"  # 27R or 09L arrivals — further north
     NONE = "None"  # not applicable
     UNKNOWN = "Unknown"
 
@@ -71,7 +71,7 @@ class ValidationResult:
     agreement_rate: float  # 0.0–100.0 %
     sample_count: int
     drift_suspected: bool
-    pdf_result: str  # "match" | "mismatch" | "ambiguous" | "unavailable"
+    pdf_result: str  # "Match" | "Mismatch" | "Ambiguous" | "Unavailable"
     pdf_detail: str
     pdf_last_checked: str | None  # ISO timestamp or None
     pdf_source: str

@@ -13,7 +13,7 @@ Drift verdict rules
 -------------------
   drift_suspected = True  only when BOTH:
     • rolling disagreement_rate >= disagreement_threshold
-    • most recent PDF check returned "mismatch"
+    • most recent PDF check returned "Mismatch"
 
   pdf_feed_degraded = True when >= pdf_failure_limit consecutive PDF checks
   have all failed — signals the safety net itself is broken.
@@ -50,7 +50,7 @@ class _Sample:
 @dataclass
 class _PDFCheck:
     checked_at: str  # ISO-8601
-    result: str  # "match" | "mismatch" | "ambiguous" | "unavailable"
+    result: str  # "Match" | "Mismatch" | "Ambiguous" | "Unavailable"
     source_url: str
     detail: str
     consecutive_failures: int = 0
@@ -136,12 +136,12 @@ class Validator:
             self._save()
 
         rate = self._rate()
-        pdf_result = self._last_pdf.result if self._last_pdf else "unavailable"
+        pdf_result = self._last_pdf.result if self._last_pdf else "Unavailable"
 
         return ValidationResult(
             agreement_rate=round((1.0 - rate) * 100, 1),
             sample_count=len(self._samples),
-            drift_suspected=(rate >= self._threshold and pdf_result == "mismatch"),
+            drift_suspected=(rate >= self._threshold and pdf_result == "Mismatch"),
             pdf_result=pdf_result,
             pdf_detail=self._last_pdf.detail if self._last_pdf else "No check run yet",
             pdf_last_checked=self._last_pdf.checked_at if self._last_pdf else None,
@@ -175,7 +175,7 @@ class Validator:
             self._pdf_fails += 1
             return _PDFCheck(
                 checked_at=now.isoformat(),
-                result="unavailable",
+                result="Unavailable",
                 source_url=result.source_url,
                 detail=result.error or "Unknown fetch/parse error",
                 consecutive_failures=self._pdf_fails,
@@ -187,7 +187,7 @@ class Validator:
         if row is None:
             return _PDFCheck(
                 checked_at=now.isoformat(),
-                result="unavailable",
+                result="Unavailable",
                 source_url=result.source_url,
                 detail=(
                     "Current week not found in PDF — possible year-boundary edge case"
@@ -200,22 +200,22 @@ class Validator:
         obs_ok = pdf_runway == observed
 
         if engine_ok and obs_ok:
-            verdict = "match"
+            verdict = "Match"
             detail = f"PDF, engine and classifier all agree: {pdf_runway}."
         elif engine_ok and not obs_ok:
-            verdict = "match"
+            verdict = "Match"
             detail = (
                 f"PDF says {pdf_runway} — agrees with engine. "
                 f"Classifier sees {observed}; likely TEAM or transient."
             )
         elif obs_ok and not engine_ok:
-            verdict = "mismatch"
+            verdict = "Mismatch"
             detail = (
                 f"PDF says {pdf_runway} — agrees with classifier ({observed}). "
                 f"Engine predicts {predicted}. Schedule rules may have changed."
             )
         else:
-            verdict = "ambiguous"
+            verdict = "Ambiguous"
             detail = (
                 f"PDF says {pdf_runway}, engine says {predicted}, "
                 f"classifier says {observed}. All three differ."

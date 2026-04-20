@@ -11,7 +11,7 @@ from ha_mqtt_publisher import Device, Entity, MQTTPublisher
 
 from heathrow_noise import __version__
 from heathrow_noise.config import Config
-from heathrow_noise.models import HeathrowState, OperationsMode
+from heathrow_noise.models import HeathrowState
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,8 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             unique_id="mode",
             name="Operations Mode",
             state_topic=topic("mode"),
+            device_class="enum",
+            options=["Westerly", "Easterly", "Unknown"],
             icon="mdi:airplane",
         ),
         Entity(
@@ -74,6 +76,8 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             unique_id="overhead_impact",
             name="Overhead Impact",
             state_topic=topic("overhead_impact"),
+            device_class="enum",
+            options=["High", "Low", "None", "Unknown"],
             icon="mdi:home-sound-in",
         ),
         Entity(
@@ -112,7 +116,7 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             component="sensor",
             unique_id="schedule_json",
             name="Schedule",
-            state_topic=topic("schedule_summary"),
+            state_topic=topic("schedule_current"),
             json_attributes_topic=topic("schedule_json"),
             icon="mdi:calendar-clock",
         ),
@@ -167,18 +171,10 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             unique_id="classifier_confidence",
             name="Classifier Confidence",
             state_topic=topic("classifier_confidence"),
+            device_class="enum",
+            options=["High", "Medium", "Low"],
             entity_category="diagnostic",
             icon="mdi:chart-bar",
-        ),
-        Entity(
-            config,
-            device,
-            component="sensor",
-            unique_id="status",
-            name="Status",
-            state_topic=topic("status"),
-            entity_category="diagnostic",
-            icon="mdi:information-outline",
         ),
         # --- Schedule validation sensors ---
         Entity(
@@ -190,6 +186,7 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             state_topic=topic("schedule_agreement_rate"),
             unit_of_measurement="%",
             state_class="measurement",
+            suggested_display_precision=1,
             entity_category="diagnostic",
             icon="mdi:chart-line",
         ),
@@ -213,6 +210,8 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             name="PDF Verification Result",
             state_topic=topic("pdf_verification_result"),
             json_attributes_topic=topic("pdf_verification_detail"),
+            device_class="enum",
+            options=["Match", "Mismatch", "Ambiguous", "Unavailable"],
             entity_category="diagnostic",
             icon="mdi:file-check-outline",
         ),
@@ -325,9 +324,13 @@ def publish_state(
         "next_quiet": _iso(sched.next_quiet_start),
         "next_high_impact": _iso(sched.next_high_impact_start),
         "schedule_json": json.dumps({"periods": schedule_payload}),
-        "schedule_summary": (
-            f"{len(schedule_payload)} periods, next: "
-            f"{schedule_payload[0]['runway'] if schedule_payload else 'n/a'}"
+        "schedule_current": (
+            schedule_payload[0]["runway"]
+            if schedule_payload
+            and datetime.fromisoformat(schedule_payload[0]["start"])
+            <= datetime.now(UTC)
+            < datetime.fromisoformat(schedule_payload[0]["end"])
+            else "Inactive"
         ),
         "deviation_active": "yes" if state.deviations else "no",
         "deviation_text": (
@@ -336,7 +339,6 @@ def publish_state(
         "feed_available": "yes" if state.feed_available else "no",
         "aircraft_seen": str(rwy.aircraft_seen),
         "classifier_confidence": rwy.confidence,
-        "status": "Ok" if rwy.mode != OperationsMode.UNKNOWN else "Classifying",
     }
 
     v = state.validation

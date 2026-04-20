@@ -21,16 +21,16 @@ home:
 runways:
   "27L":
     centreline_lat: 51.4647        # southern runway — impactful for you
-    impact: "HIGH"
+    impact: "High"
   "27R":
     centreline_lat: 51.4775        # northern runway — less impactful
-    impact: "LOW"
+    impact: "Low"
   "09L":
     centreline_lat: 51.4775        # easterly — northern
-    impact: "LOW"
+    impact: "Low"
   "09R":
     centreline_lat: 51.4647        # easterly — southern
-    impact: "HIGH"
+    impact: "High"
 
 # Deviation feed — xcancel RSS mirror of @HeathrowRunways
 deviation_feed:

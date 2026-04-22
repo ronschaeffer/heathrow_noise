@@ -16,10 +16,10 @@ def _mock_config():
     }.get(key, default)
     cfg.get.side_effect = lambda key, default=None: {
         "runways": {
-            "27L": {"impact": "HIGH"},
-            "27R": {"impact": "LOW"},
-            "09L": {"impact": "LOW"},
-            "09R": {"impact": "HIGH"},
+            "27L": {"impact": "High"},
+            "27R": {"impact": "Low"},
+            "09L": {"impact": "Low"},
+            "09R": {"impact": "High"},
         },
     }.get(key, default)
     return cfg

@@ -142,16 +142,24 @@ def classify(
         mode = OperationsMode.UNKNOWN
         departures_runway = "unknown"
 
-    # Impact relative to home position
-    runway_cfg = config.get("runways", {})
-    rwy_info = runway_cfg.get(arrivals_runway, {})
-    impact_str = (
-        rwy_info.get("impact", "UNKNOWN") if isinstance(rwy_info, dict) else "UNKNOWN"
-    )
-    try:
-        impact = OverheadImpact(impact_str)
-    except ValueError:
-        impact = OverheadImpact.UNKNOWN
+    # Impact relative to home position.
+    # Easterly ops: departures climb eastward over Isleworth — real but
+    # diminishing noise regardless of which runway. Always Mid.
+    # Westerly ops: impact is per-runway from config (27L=High, 27R=Low).
+    if mode == OperationsMode.EASTERLY:
+        impact = OverheadImpact.MID
+    else:
+        runway_cfg = config.get("runways", {})
+        rwy_info = runway_cfg.get(arrivals_runway, {})
+        impact_str = (
+            rwy_info.get("impact", "UNKNOWN")
+            if isinstance(rwy_info, dict)
+            else "UNKNOWN"
+        )
+        try:
+            impact = OverheadImpact(impact_str)
+        except ValueError:
+            impact = OverheadImpact.UNKNOWN
 
     return RunwayState(
         mode=mode,

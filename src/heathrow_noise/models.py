@@ -14,9 +14,10 @@ class OperationsMode(StrEnum):
 
 
 class OverheadImpact(StrEnum):
-    HIGH = "High"  # 27L or 09R arrivals — directly over Isleworth
-    LOW = "Low"  # 27R or 09L arrivals — further north
-    NONE = "None"  # not applicable
+    HIGH = "High"   # 27L arrivals — slow final directly over Isleworth
+    MID = "Mid"     # Easterly ops — departures climbing out eastward
+    LOW = "Low"     # 27R arrivals — further north, barely audible
+    NONE = "None"   # not applicable
     UNKNOWN = "Unknown"
 
 

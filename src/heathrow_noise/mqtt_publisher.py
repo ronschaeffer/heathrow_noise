@@ -77,7 +77,7 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
             name="Overhead Impact",
             state_topic=topic("overhead_impact"),
             device_class="enum",
-            options=["High", "Low", "None", "Unknown"],
+            options=["High", "Mid", "Low", "None", "Unknown"],
             icon="mdi:home-sound-in",
         ),
         Entity(

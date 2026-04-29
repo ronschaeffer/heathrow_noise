@@ -76,3 +76,26 @@ class TestClassifier:
         ]
         result = classify({"aircraft": aircraft}, cfg)
         assert result.mode == OperationsMode.UNKNOWN
+
+    def test_easterly_ops_mid_impact(self):
+        """Easterly arrivals → Mid impact regardless of north/south runway."""
+        cfg = _mock_config()
+        # 09L aircraft (northern runway, heading east)
+        aircraft = [
+            {"lat": 51.478, "lon": -0.350, "alt_baro": 2000, "track": 90.0},
+            {"lat": 51.478, "lon": -0.380, "alt_baro": 1800, "track": 88.0},
+        ]
+        result = classify({"aircraft": aircraft}, cfg)
+        assert result.mode == OperationsMode.EASTERLY
+        assert result.overhead_impact == OverheadImpact.MID
+
+    def test_easterly_southern_runway_mid_impact(self):
+        """Easterly 09R (southern) also gives Mid, not High."""
+        cfg = _mock_config()
+        aircraft = [
+            {"lat": 51.464, "lon": -0.350, "alt_baro": 2000, "track": 90.0},
+            {"lat": 51.464, "lon": -0.380, "alt_baro": 1800, "track": 92.0},
+        ]
+        result = classify({"aircraft": aircraft}, cfg)
+        assert result.mode == OperationsMode.EASTERLY
+        assert result.overhead_impact == OverheadImpact.MID

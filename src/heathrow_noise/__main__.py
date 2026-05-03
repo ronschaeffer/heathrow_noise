@@ -132,6 +132,7 @@ def cmd_service(config: Config) -> None:
                 deviations=deviations,
                 last_updated=datetime.now(UTC),
                 feed_available=feed_available,
+                receiver_available=receiver_ok,
                 validation=validation_result,
             )
 

@@ -14,10 +14,10 @@ class OperationsMode(StrEnum):
 
 
 class OverheadImpact(StrEnum):
-    HIGH = "High"   # 27L arrivals — slow final directly over Isleworth
-    MID = "Mid"     # Easterly ops — departures climbing out eastward
-    LOW = "Low"     # 27R arrivals — further north, barely audible
-    NONE = "None"   # not applicable
+    HIGH = "High"  # 27L arrivals — slow final directly over Isleworth
+    MID = "Mid"  # Easterly ops — departures climbing out eastward
+    LOW = "Low"  # 27R arrivals — further north, barely audible
+    NONE = "None"  # not applicable
     UNKNOWN = "Unknown"
 
 
@@ -88,4 +88,5 @@ class HeathrowState:
     deviations: list[DeviationNotice] = field(default_factory=list)
     last_updated: datetime = field(default_factory=datetime.utcnow)
     feed_available: bool = False
+    receiver_available: bool = False
     validation: ValidationResult | None = None

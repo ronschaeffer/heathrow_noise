@@ -156,6 +156,18 @@ def _create_entities(config: Config, device: Device) -> list[Entity]:
         Entity(
             config,
             device,
+            component="binary_sensor",
+            unique_id="receiver_available",
+            name="ADS-B Receiver",
+            state_topic=topic("receiver_available"),
+            payload_on="yes",
+            payload_off="no",
+            device_class="connectivity",
+            entity_category="diagnostic",
+        ),
+        Entity(
+            config,
+            device,
             component="sensor",
             unique_id="aircraft_seen",
             name="Aircraft on Approach",
@@ -337,6 +349,7 @@ def publish_state(
             "; ".join(deviation_texts) if deviation_texts else "No active notices"
         ),
         "feed_available": "yes" if state.feed_available else "no",
+        "receiver_available": "yes" if state.receiver_available else "no",
         "aircraft_seen": str(rwy.aircraft_seen),
         "classifier_confidence": rwy.confidence,
     }

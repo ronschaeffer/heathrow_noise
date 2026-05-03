@@ -30,7 +30,7 @@ icon: >-
   {% endif %}
 
 # Icon colour: live impact first, fall back to scheduled period when classifier
-# returns Unknown (e.g. FLIGHTTRACK offline or pre-ops)
+# returns Unknown (e.g. FLIGHTTRACK offline or outside operational hours)
 icon_color: >-
   {% set i = states('sensor.heathrow_noise_overhead_impact') %}
   {% if i == 'Unknown' %}
@@ -45,18 +45,18 @@ icon_color: >-
   {% else %}disabled
   {% endif %}
 
-# Primary: runway + mode, with schedule fallback when classifier is Unknown
+# Primary: "Runway 27L • Westerly" with schedule fallback when classifier Unknown
 primary: >-
   {% set mode = states('sensor.heathrow_noise_operations_mode') %}
   {% set rwy = states('sensor.heathrow_noise_arrivals_runway') %}
   {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
-  {% if mode == 'Westerly' %}{{ rwy }} · Westerly
-  {% elif mode == 'Easterly' %}{{ rwy }} · Easterly
-  {% elif ps | count > 0 and (ps[0].start | as_datetime) <= now() %}{{ ps[0].runway }} · Westerly
+  {% if mode == 'Westerly' %}Runway {{ rwy }} • Westerly
+  {% elif mode == 'Easterly' %}Runway {{ rwy }} • Easterly
+  {% elif ps | count > 0 and (ps[0].start | as_datetime) <= now() %}Runway {{ ps[0].runway }} • Westerly
   {% else %}Quiet hours
   {% endif %}
 
-# Secondary: Switch HH:MM • CurrentImpact ➜ NextImpact
+# Secondary: "Switch HH:MM • CurrentImpact ➜ NextImpact"
 # Falls back to schedule when classifier is Unknown or pre-ops
 secondary: >-
   {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
@@ -108,5 +108,5 @@ cards:
 
       **{{ day }}**
         {% endif %}
-      `{{ s.strftime("%H:%M") }}–{{ e.strftime("%H:%M") }}`  **{{ p.runway }}**  {{ "🔴 High" if p.impact == "High" else "🟢 Low" }}
+      `{{ s.strftime("%H:%M") }}–{{ e.strftime("%H:%M") }}`  **{{ p.runway }}**  {{ "🔴 High" if p.impact == "High" else ("🟠 Mid" if p.impact == "Mid" else "🟢 Low") }}
       {% endfor %}

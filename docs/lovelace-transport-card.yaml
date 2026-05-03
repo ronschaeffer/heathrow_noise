@@ -31,7 +31,8 @@ icon: >-
 
 # Icon colour: live impact first, fall back to scheduled period when classifier
 # returns Unknown (e.g. FLIGHTTRACK offline or outside operational hours)
-icon_color: >-
+# Note: stored as 'color' not 'icon_color' in this version of mushroom-template-card
+color: >-
   {% set i = states('sensor.heathrow_noise_overhead_impact') %}
   {% if i == 'Unknown' %}
     {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
@@ -45,14 +46,14 @@ icon_color: >-
   {% else %}disabled
   {% endif %}
 
-# Primary: "Runway 27L • Westerly" with schedule fallback when classifier Unknown
+# Primary: "LHR Runway 27L • Westerly" with schedule fallback when classifier Unknown
 primary: >-
   {% set mode = states('sensor.heathrow_noise_operations_mode') %}
   {% set rwy = states('sensor.heathrow_noise_arrivals_runway') %}
   {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
-  {% if mode == 'Westerly' %}Runway {{ rwy }} • Westerly
-  {% elif mode == 'Easterly' %}Runway {{ rwy }} • Easterly
-  {% elif ps | count > 0 and (ps[0].start | as_datetime) <= now() %}Runway {{ ps[0].runway }} • Westerly
+  {% if mode == 'Westerly' %}LHR Runway {{ rwy }} • Westerly
+  {% elif mode == 'Easterly' %}LHR Runway {{ rwy }} • Easterly
+  {% elif ps | count > 0 and (ps[0].start | as_datetime) <= now() %}LHR Runway {{ ps[0].runway }} • Westerly
   {% else %}Quiet hours
   {% endif %}
 

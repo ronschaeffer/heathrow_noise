@@ -1,0 +1,112 @@
+# Heathrow Noise — Transport dashboard cards
+#
+# Two cards required:
+#   1. Mushroom Template Card (compact tile) — goes in the "Heathrow Noise" section
+#   2. Bubble Card pop-up (week schedule) — goes in its own vertical-stack section,
+#      placed LAST in the dashboard so the pop-up renders correctly
+#
+# Prerequisites:
+#   HACS: mushroom, bubble-card
+#   Entities: all sensor.heathrow_noise_* and binary_sensor.heathrow_noise_*
+
+# ── 1. Compact tile ──────────────────────────────────────────────────────────
+type: custom:mushroom-template-card
+grid_options:
+  columns: full
+tap_action:
+  action: navigate
+  navigation_path: "#heathrow-noise"
+
+# Icon: landing (Westerly), takeoff (Easterly), neutral (quiet/unknown)
+icon: >-
+  {% set mode = states('sensor.heathrow_noise_operations_mode') %}
+  {% if mode == 'Easterly' %}mdi:airplane-takeoff
+  {% elif mode == 'Westerly' %}mdi:airplane-landing
+  {% else %}
+    {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
+    {% if ps | count > 0 and (ps[0].start | as_datetime) <= now() %}mdi:airplane-landing
+    {% else %}mdi:airplane
+    {% endif %}
+  {% endif %}
+
+# Icon colour: live impact first, fall back to scheduled period when classifier
+# returns Unknown (e.g. FLIGHTTRACK offline or pre-ops)
+icon_color: >-
+  {% set i = states('sensor.heathrow_noise_overhead_impact') %}
+  {% if i == 'Unknown' %}
+    {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
+    {% if ps | count > 0 and (ps[0].start | as_datetime) <= now() %}
+      {% set i = ps[0].impact %}
+    {% endif %}
+  {% endif %}
+  {% if i == 'High' %}red
+  {% elif i == 'Mid' %}orange
+  {% elif i == 'Low' %}green
+  {% else %}disabled
+  {% endif %}
+
+# Primary: runway + mode, with schedule fallback when classifier is Unknown
+primary: >-
+  {% set mode = states('sensor.heathrow_noise_operations_mode') %}
+  {% set rwy = states('sensor.heathrow_noise_arrivals_runway') %}
+  {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
+  {% if mode == 'Westerly' %}{{ rwy }} · Westerly
+  {% elif mode == 'Easterly' %}{{ rwy }} · Easterly
+  {% elif ps | count > 0 and (ps[0].start | as_datetime) <= now() %}{{ ps[0].runway }} · Westerly
+  {% else %}Quiet hours
+  {% endif %}
+
+# Secondary: Switch HH:MM • CurrentImpact ➜ NextImpact
+# Falls back to schedule when classifier is Unknown or pre-ops
+secondary: >-
+  {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
+  {% set mode = states('sensor.heathrow_noise_operations_mode') %}
+  {% set impact = states('sensor.heathrow_noise_overhead_impact') %}
+  {% set n = states('sensor.heathrow_noise_next_runway_switch') %}
+  {% if mode == 'Westerly' %}
+    {% set ni = ps[1].impact if ps | count > 1 else '' %}
+    {% if n not in ['unknown', 'unavailable'] %}
+      {% set t = n | as_datetime | as_local %}
+      Switch {{ t.strftime('%-H:%M') }} • {{ impact }} ➜ {{ ni }}
+    {% else %}{{ impact }}
+    {% endif %}
+  {% elif mode == 'Easterly' %}Mid • Wind-dependent
+  {% else %}
+    {% if ps | count > 0 %}
+      {% set p0_start = ps[0].start | as_datetime %}
+      {% if p0_start <= now() %}
+        {% set ni = ps[1].impact if ps | count > 1 else '' %}
+        {% if n not in ['unknown', 'unavailable'] %}
+          {% set t = n | as_datetime | as_local %}
+          Switch {{ t.strftime('%-H:%M') }} • {{ ps[0].impact }} ➜ {{ ni }}
+        {% else %}{{ ps[0].impact }}
+        {% endif %}
+      {% else %}{{ ps[0].impact }} from {{ p0_start | as_local | strftime('%-H:%M') }}
+      {% endif %}
+    {% else %}No schedule
+    {% endif %}
+  {% endif %}
+
+---
+# ── 2. Pop-up (place in its own vertical-stack section, last in dashboard) ───
+type: vertical-stack
+cards:
+  - type: custom:bubble-card
+    card_type: pop-up
+    hash: "#heathrow-noise"
+    icon: mdi:airplane
+
+  - type: markdown
+    content: >-
+      {% set ps = state_attr("sensor.heathrow_noise_schedule", "periods") or [] %}
+      {% set ns = namespace(d="") %}
+      {% for p in ps %}
+        {% set s = p.start | as_datetime | as_local %}
+        {% set e = p.end | as_datetime | as_local %}
+        {% set day = s.strftime("%a %-d %b") %}
+        {% if day != ns.d %}{% set ns.d = day %}
+
+      **{{ day }}**
+        {% endif %}
+      `{{ s.strftime("%H:%M") }}–{{ e.strftime("%H:%M") }}`  **{{ p.runway }}**  {{ "🔴 High" if p.impact == "High" else "🟢 Low" }}
+      {% endfor %}

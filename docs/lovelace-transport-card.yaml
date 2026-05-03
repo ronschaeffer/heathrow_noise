@@ -56,33 +56,35 @@ primary: >-
   {% else %}Quiet hours
   {% endif %}
 
-# Secondary: "Switch HH:MM • CurrentImpact ➜ NextImpact"
-# Falls back to schedule when classifier is Unknown or pre-ops
+# Secondary (context-aware):
+#   High/Mid → "Switch HH:MM • High ➜ Low"  (when does it get better?)
+#   Low       → "High from HH:MM Mon"         (when does it get noisy?)
+#   Pre-ops   → "High from HH:MM"             (first period of the day)
 secondary: >-
   {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
   {% set mode = states('sensor.heathrow_noise_operations_mode') %}
   {% set impact = states('sensor.heathrow_noise_overhead_impact') %}
   {% set n = states('sensor.heathrow_noise_next_runway_switch') %}
-  {% if mode == 'Westerly' %}
-    {% set ni = ps[1].impact if ps | count > 1 else '' %}
-    {% if n not in ['unknown', 'unavailable'] %}
-      {% set t = n | as_datetime | as_local %}
-      Switch {{ t.strftime('%-H:%M') }} • {{ impact }} ➜ {{ ni }}
-    {% else %}{{ impact }}
+  {% set nh = states('sensor.heathrow_noise_next_high_impact_period') %}
+  {% if mode in ['Westerly', 'Easterly'] or (ps | count > 0 and (ps[0].start | as_datetime) <= now()) %}
+    {% set cur = impact if impact != 'Unknown' else (ps[0].impact if ps | count > 0 else 'Unknown') %}
+    {% if cur in ['High', 'Mid'] %}
+      {% if n not in ['unknown', 'unavailable'] %}
+        {% set t = n | as_datetime | as_local %}
+        {% set ni = ps[1].impact if ps | count > 1 else 'Low' %}
+        Switch {{ t.strftime('%-H:%M') }} • {{ cur }} ➜ {{ ni }}
+      {% else %}{{ cur }} impact
+      {% endif %}
+    {% else %}
+      {% if nh not in ['unknown', 'unavailable'] %}
+        {% set t = nh | as_datetime | as_local %}
+        High from {{ t.strftime('%-H:%M') }} {{ t.strftime('%a') }}
+      {% else %}Low • No High period scheduled
+      {% endif %}
     {% endif %}
-  {% elif mode == 'Easterly' %}Mid • Wind-dependent
   {% else %}
     {% if ps | count > 0 %}
-      {% set p0_start = ps[0].start | as_datetime %}
-      {% if p0_start <= now() %}
-        {% set ni = ps[1].impact if ps | count > 1 else '' %}
-        {% if n not in ['unknown', 'unavailable'] %}
-          {% set t = n | as_datetime | as_local %}
-          Switch {{ t.strftime('%-H:%M') }} • {{ ps[0].impact }} ➜ {{ ni }}
-        {% else %}{{ ps[0].impact }}
-        {% endif %}
-      {% else %}{{ ps[0].impact }} from {{ p0_start | as_local | strftime('%-H:%M') }}
-      {% endif %}
+      {{ ps[0].impact }} from {{ (ps[0].start | as_datetime | as_local).strftime('%-H:%M') }}
     {% else %}No schedule
     {% endif %}
   {% endif %}

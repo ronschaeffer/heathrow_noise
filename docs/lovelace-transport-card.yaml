@@ -46,14 +46,14 @@ color: >-
   {% else %}disabled
   {% endif %}
 
-# Primary: "LHR Runway 27L • Westerly" with schedule fallback when classifier Unknown
+# Primary: "High Noise • Flight Path 27L • Westerly" with schedule fallback when classifier Unknown
 primary: >-
   {% set mode = states('sensor.heathrow_noise_operations_mode') %}
   {% set rwy = states('sensor.heathrow_noise_arrivals_runway') %}
   {% set ps = state_attr('sensor.heathrow_noise_schedule', 'periods') or [] %}
-  {% if mode == 'Westerly' %}LHR Runway {{ rwy }} • Westerly
-  {% elif mode == 'Easterly' %}LHR Runway {{ rwy }} • Easterly
-  {% elif ps | count > 0 and (ps[0].start | as_datetime) <= now() %}LHR Runway {{ ps[0].runway }} • Westerly
+  {% if mode == 'Westerly' %}{{ impact }} Noise • Flight Path {{ rwy }} • Westerly
+  {% elif mode == 'Easterly' %}{{ impact }} Noise • Flight Path {{ rwy }} • Easterly
+  {% elif ps | count > 0 and (ps[0].start | as_datetime) <= now() %}{{ ps[0].impact }} Noise • Flight Path {{ ps[0].runway }} • Westerly
   {% else %}Quiet hours
   {% endif %}
 

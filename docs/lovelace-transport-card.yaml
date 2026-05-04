@@ -79,7 +79,7 @@ secondary: >-
     {% else %}
       {% if nh not in ['unknown', 'unavailable'] %}
         {% set t = nh | as_datetime | as_local %}
-        {% set day = 'Today' if t.date() == now().date() else t.strftime('%a') %}
+        {% set day = 'today' if t.date() == now().date() else t.strftime('%a') %}
         High from {{ t.strftime('%-H:%M') }} {{ day }}
       {% else %}Low • No High period scheduled
       {% endif %}
